@@ -1,3 +1,4 @@
+// Rebuilds the uploaded source bundle into editable project files.
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
