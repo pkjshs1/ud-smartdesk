@@ -4,19 +4,17 @@ Google Apps Script 기반 학교 스마트 데스크 웹앱입니다.
 
 ## 포함 파일
 
-원본 소스는 GitHub 업로드 제한을 피하기 위해 Brotli 압축 후 Base64 조각으로 나누어 `source-parts/`에 저장되어 있습니다.
+- `Code.gs`: Apps Script 서버 코드
+- `index.html`: 교사용 스마트 데스크 화면
+- `lite.html`: 학생용/모바일 시간표 화면
+- `source-parts/`: 원본 소스 백업용 Brotli/Base64 조각
+- `restore-source.js`: `source-parts/`에서 원본 파일을 다시 복원하는 스크립트
 
-복원하려면 저장소를 내려받은 뒤 다음 명령을 실행하세요.
+백업 조각에서 다시 복원하려면 다음 명령을 실행하세요.
 
 ```bash
 node restore-source.js
 ```
-
-복원 결과는 아래 경로에 생성됩니다.
-
-- `restored-source/Code.gs`: Apps Script 서버 코드
-- `restored-source/index.html`: 교사용 스마트 데스크 화면
-- `restored-source/lite.html`: 학생용/모바일 시간표 화면
 
 자세한 내용은 `RESTORE.md`를 참고하세요.
 
