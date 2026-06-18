@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>웅동중학교 시간표</title>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Pretendard:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --text-main: #2d3436;
+      
+      /* 시간표 (노란색) */
+      --bg-table: #fff9db;   
+      --border-table: #ffe066;
+      
+      /* 달력 (애플 민트) */
+      --bg-top: #e6fcf5;     
+      --border-top: #c3fae8;
+      
+      /* 점심 (피치 핑크) */
+      --bg-lunch: #fff0f6;   
+      --border-lunch: #ffdeeb;
+
+      --text-title: #ff6b81; /* 제목 코랄 핑크 */
+      
+      /* 요일 색상 */
+      --color-mon: #ff8787;
+      --color-tue: #ffc9c9;
+      --color-wed: #ffe066;
+      --color-thu: #69db7c;
+      --color-fri: #74c0fc;
+      --theme-main: #6c5ce7;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Pretendard', sans-serif;
+      margin: 0;
+      padding: 10px;
+      color: var(--text-main);
+      background: #fdfdfd;
+      min-height: 100vh; 
+      overflow-y: auto; 
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* 애니메이션 정의 */
+    @keyframes popIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes gradient-shine { 
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    @keyframes pulse-icon {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); box-shadow: 0 0 10px rgba(255,255,255,0.6); }
+        100% { transform: scale(1); }
+    }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+    /* 1. 헤더 */
+    header {
+      flex-shrink: 0; display: flex; justify-content: center; align-items: center;
+      padding: 2px 0; margin-bottom: 2px; position: relative;
+    }
+    header h1 {
+      font-family: 'Jua'; color: var(--text-title); font-size: 1.5rem; margin: 0;
+      text-shadow: 2px 2px 0px white; letter-spacing: -0.5px;
+    }
+    .badge {
+      position: absolute; right: 0;
+      background: #f1f3f5; color: #adb5bd;
+      font-size: 0.7rem; padding: 3px 8px; border-radius: 12px;
+      font-family: 'Jua';
+    }
+
+    /* 2. 공지사항 */
+    .notice-section {
+      background: linear-gradient(-45deg, #FF9A9E, #FECFEF, #a18cd1, #fad0c4);
+      background-size: 400% 400%;
+      animation: gradient-shine 6s ease infinite, popIn 0.3s ease-out;
+      border: 2px solid white;
+      border-radius: 20px; padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+      box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
+    }
+    .notice-icon-box {
+        background: white; width: 32px; height: 32px; border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 1.2rem; flex-shrink: 0;
+        animation: pulse-icon 2s infinite;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .notice-content {
+      font-size: 0.95rem; font-weight: 800; color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+      line-height: 1.4; word-break: keep-all; flex: 1;
+    }
+
+    /* 3. 달력 & 컨트롤 */
+    .top-section {
+      background: var(--bg-top);
+      border: 2px solid var(--border-top);
+      border-radius: 18px; padding: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
+      animation: popIn 0.4s ease-out;
+    }
+    .cal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 4px; font-family: 'Jua'; font-size: 1.1rem; color: #0ca678;
+    }
+    .cal-btn {
+      background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #63e6be; padding: 0 10px;
+    }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+    .day-label { font-size: 0.7rem; color: #868e96; font-weight: 700; }
+    .day-cell {
+      height: 32px; display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; background: rgba(255,255,255,0.7); 
+      border: 1px solid transparent; color: var(--text-main);
+    }
+    .day-cell.today { border: 1.5px solid #20c997; color: #20c997; }
+    .day-cell.selected {
+      background: #20c997; color: white;
+      box-shadow: 0 2px 5px rgba(32, 201, 151, 0.3); transform: scale(1.05);
+    }
+    .select-row { display: flex; gap: 6px; margin-top: 2px; }
+    select {
+      flex: 1; padding: 6px; border-radius: 10px; border: 1px solid #c3fae8;
+      font-family: 'Jua'; font-size: 0.9rem; color: #495057; background: rgba(255,255,255,0.9);
+      outline: none; text-align: center; height: 34px;
+    }
+
+    /* 4. 시간표 */
+    .timetable-container {
+      height: 380px; flex-shrink: 0;
+      background: var(--bg-table);
+      border: 2px solid var(--border-table);
+      border-radius: 18px; padding: 4px;
+      display: flex; flex-direction: column;
+      overflow: hidden; 
+      animation: popIn 0.5s ease-out;
+    }
+    #table-area { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+    table { width: 100%; height: 100%; border-collapse: separate; border-spacing: 2px; table-layout: fixed; }
+    th, td { text-align: center; vertical-align: middle; border-radius: 8px; padding: 0; position: relative; }
+    th { height: 28px; font-family: 'Jua'; color: white; font-size: 0.85rem; text-shadow: 0 1px 0 rgba(0,0,0,0.1); }
+    th:nth-child(1) { background: rgba(255,255,255,0.6); color: #b2bec3; font-size: 0.7rem; width: 26px; }
+    th:nth-child(2) { background: var(--color-mon); }
+    th:nth-child(3) { background: var(--color-tue); }
+    th:nth-child(4) { background: var(--color-wed); color: white; }
+    th:nth-child(5) { background: var(--color-thu); }
+    th:nth-child(6) { background: var(--color-fri); }
+    td { background: rgba(255,255,255,0.85); border: 1px solid white; font-size: 0.85rem; cursor: pointer; }
+    .period-col { background: rgba(255,255,255,0.6) !important; font-family: 'Jua'; color: #b2bec3; font-size: 0.8rem; border: none !important; }
+    .period-col.is-now { background: #fab005 !important; color: white; border-radius: 8px; }
+    .is-highlighted-day { background: white !important; border: 2px solid #fab005 !important; z-index: 1; }
+    .subject { font-weight: 800; color: #343a40; margin: 0; line-height: 1.1; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .teacher-name { font-size: 0.7rem; color: #868e96; background: #f8f9fa; padding: 0 4px; border-radius: 4px; display: inline-block; font-weight: 600; margin-top: 1px; }
+    .special-cell { background: #fffcfc !important; border: 2px dashed #ff7675 !important; vertical-align: middle; cursor: default; }
+    .special-content { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; height: 100%; }
+    .special-emoji { font-size: 2.5rem; animation: bounce 2s infinite; }
+    .special-text { font-family: 'Jua'; font-size: 1.2rem; font-weight: bold; line-height: 1.3; }
+    .special-sub { font-size: 2rem; margin-top: 5px; }
+
+    /* 5. 급식 순서 배너 (수정: 은은한 파스텔톤 + 애니메이션 유지) */
+    .seq-banner {
+      /* 부드러운 파스텔 라벤더-블루 그라데이션 */
+      background: linear-gradient(-45deg, #e0c3fc, #8ec5fc, #c2e9fb, #e0c3fc);
+      background-size: 400% 400%;
+      animation: gradient-shine 8s ease infinite, popIn 0.6s ease-out; /* 애니메이션 속도 조절 */
+      border-radius: 16px; padding: 12px 15px;
+      
+      /* 글자색 변경 (가독성 확보) */
+      color: #535c68; 
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      flex-shrink: 0;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      gap: 4px; border: 2px solid white;
+    }
+    .seq-label { 
+        font-size: 0.85rem; opacity: 0.8; font-weight: 700; margin-bottom: 0; 
+        color: #6a89cc; /* 라벨 색상 별도 지정 */
+    }
+    .seq-text { 
+        font-size: 1.3rem; font-family: 'Jua'; letter-spacing: 0.5px; font-weight: 400; 
+        color: #4a69bd; /* 텍스트 색상 진하게 */
+    }
+
+    /* 6. 점심 메뉴 */
+    .lunch-section {
+      background: var(--bg-lunch);
+      border: 2px solid var(--border-lunch);
+      border-radius: 18px; padding: 15px;
+      flex-shrink: 0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+      display: flex; flex-direction: column;
+      height: auto; min-height: 100px;
+      animation: popIn 0.7s ease-out;
+      margin-bottom: 20px;
+    }
+    .lunch-header { display: flex; justify-content: center; align-items: center; margin-bottom: 10px; position: relative; }
+    .lunch-badge { 
+      font-family: 'Jua'; background: #faa2c1; color: white; 
+      font-size: 0.9rem; padding: 4px 12px; border-radius: 15px; 
+      box-shadow: 0 2px 4px rgba(250, 162, 193, 0.4);
+    }
+    .lunch-date { position: absolute; right: 0; font-size: 0.8rem; color: #faa2c1; font-weight: 700; }
+    .lunch-content-area { flex: 1; display: flex; align-items: center; justify-content: center; overflow: visible; }
+    .lunch-content { 
+      font-size: 1rem; font-weight: 700; color: #495057; 
+      line-height: 1.8; text-align: center; width: 100%;
+      word-break: keep-all;
+    }
+
+    /* PIN, 로딩 & 기타 */
+    .pin-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(230, 252, 245, 0.98), rgba(255, 240, 246, 0.98));
+    }
+    .pin-card {
+      width: min(360px, 100%);
+      background: #fff;
+      border: 2px solid #fff;
+      border-radius: 18px;
+      padding: 26px 22px 22px;
+      box-shadow: 0 18px 44px rgba(45, 52, 54, 0.14);
+      text-align: center;
+    }
+    .pin-title {
+      margin: 0 0 6px;
+      font-family: 'Jua';
+      color: var(--theme-main);
+      font-size: 1.6rem;
+    }
+    .pin-subtitle {
+      margin: 0 0 16px;
+      color: #868e96;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+    .pin-input {
+      width: 100%;
+      height: 46px;
+      border: 2px solid #dee2e6;
+      border-radius: 12px;
+      padding: 0 14px;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      outline: none;
+    }
+    .pin-input:focus { border-color: var(--theme-main); box-shadow: 0 0 0 4px rgba(108,92,231,0.12); }
+    .pin-button {
+      width: 100%;
+      height: 44px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--theme-main);
+      color: #fff;
+      font-family: 'Jua';
+      font-size: 1.05rem;
+      cursor: pointer;
+    }
+    .pin-button:disabled { cursor: wait; opacity: 0.7; }
+    .pin-error {
+      min-height: 20px;
+      margin-top: 10px;
+      color: #e03131;
+      font-size: 0.88rem;
+      font-weight: 800;
+    }
+    #loading { position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 10px; }
+    .loader-emoji { font-size: 3rem; animation: bounce 1s infinite; }
+    .capture-btn {
+        position: fixed; bottom: 20px; right: 20px; 
+        background: white; color: #2d3436; width: 44px; height: 44px; border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        cursor: pointer; z-index: 100; border: 2px solid white;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="pin-gate" class="pin-gate" role="dialog" aria-modal="true" aria-labelledby="pin-title">
+    <form class="pin-card" onsubmit="submitPin(event)">
+      <h2 id="pin-title" class="pin-title">웅동중학교 시간표</h2>
+      <p class="pin-subtitle">PIN 번호를 입력하면 시작됩니다.</p>
+      <input id="pin-input" class="pin-input" type="password" inputmode="text" autocomplete="current-password"
+        aria-label="PIN 번호" autofocus>
+      <button id="pin-submit" class="pin-button" type="submit">입장하기</button>
+      <div id="pin-error" class="pin-error" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <div id="loading">
+    <div class="loader-emoji">🐰</div>
+    <div style="font-family:'Jua'; color:#6c5ce7; font-size:1.2rem;">데이터 로딩 중...</div>
+  </div>
+
+  <div class="capture-btn" onclick="saveImage()">📸</div>
+
+  <header>
+    <h1>웅동중학교 시간표</h1>
+    <div class="badge">학생용</div>
+  </header>
+
+  <div class="notice-section">
+    <div class="notice-icon-box">📢</div>
+    <div id="notice-text" class="notice-content">공지사항 확인 중...</div>
+  </div>
+
+  <div class="top-section">
+    <div class="cal-header">
+      <button class="cal-btn" onclick="changeWeek(-7)">&#10094;</button>
+      <span id="cal-month-title"></span>
+      <button class="cal-btn" onclick="changeWeek(7)">&#10095;</button>
+    </div>
+    <div class="cal-grid">
+      <div class="day-label" style="color:#ff8787">일</div>
+      <div class="day-label">월</div>
+      <div class="day-label">화</div>
+      <div class="day-label">수</div>
+      <div class="day-label">목</div>
+      <div class="day-label">금</div>
+      <div class="day-label" style="color:#74c0fc">토</div>
+    </div>
+    <div class="cal-grid" id="cal-days-row"></div>
+
+    <div class="select-row">
+      <select id="class-select" onchange="saveStat('class', this.value); onClassSelect(this.value)">
+        <option value="">🏫 반 선택</option>
+      </select>
+      <select id="teacher-select" onchange="saveStat('teacher', this.value); onTeacherSelect(this.value)">
+        <option value="">👩‍🏫 쌤 선택</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="timetable-container" id="capture-area">
+    <div id="table-area">
+      <div style="text-align:center; padding:20px; color:#b2bec3;">
+        <div style="font-size:3rem; margin-bottom:10px; opacity: 0.5;">🏫</div>
+        <div style="font-family:'Jua'; font-size:1.1rem;">반이나 선생님을 선택하면<br>시간표가 뿅! ✨</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="lunch-seq-area" class="seq-banner">
+    <div class="seq-label">🚀 오늘의 급식 순서</div>
+    <div id="seq-text" class="seq-text">계산 중...</div>
+  </div>
+
+  <div class="lunch-section">
+    <div class="lunch-header">
+      <span class="lunch-badge">🍽️ 오늘의 점심</span>
+      <span id="lunch-date-display" class="lunch-date"></span>
+    </div>
+    <div class="lunch-content-area">
+      <div id="lunch-menu" class="lunch-content">날짜를 누르면 메뉴가 나와요 🍳</div>
+    </div>
+  </div>
+
+  <select id="week-select" style="display:none;"></select>
+
+  <script>
+    var db = null;
+    var currentWeekStart = new Date(); 
+    var selectedDate = new Date();     
+    var days = ["월", "화", "수", "목", "금"];
+    var currP = -1;
+    var appPinToken = "";
+
+    currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+    currentWeekStart.setHours(0,0,0,0);
+    selectedDate.setHours(0,0,0,0);
+
+    function saveStat(type, val) {
+        if(!val) return;
+        localStorage.setItem('lite_type', type);
+        localStorage.setItem('lite_val', val);
+        try { google.script.run.logStat(val, "Lite_Mobile_" + navigator.userAgent, getPinToken()); } catch(e){}
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function getPinToken() {
+      if (appPinToken) return appPinToken;
+      try { appPinToken = sessionStorage.getItem('smartDeskPinToken') || ""; } catch (e) { appPinToken = ""; }
+      return appPinToken;
+    }
+
+    function setPinToken(token) {
+      appPinToken = token || "";
+      try {
+        if (appPinToken) sessionStorage.setItem('smartDeskPinToken', appPinToken);
+        else sessionStorage.removeItem('smartDeskPinToken');
+      } catch (e) {}
+    }
+
+    function showPinGate(message) {
+      document.getElementById('pin-gate').style.display = 'flex';
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('pin-error').innerText = message || "";
+      setTimeout(function() { document.getElementById('pin-input').focus(); }, 0);
+    }
+
+    function handleServerError(message) {
+      if (String(message || "").includes("PIN 인증")) showPinGate(message);
+      else alert(message || "오류가 발생했습니다.");
+    }
+
+    function hidePinGate() {
+      document.getElementById('pin-gate').style.display = 'none';
+      document.getElementById('pin-error').innerText = "";
+    }
+
+    function setPinBusy(isBusy) {
+      var btn = document.getElementById('pin-submit');
+      btn.disabled = isBusy;
+      btn.innerText = isBusy ? "확인 중..." : "입장하기";
+    }
+
+    function submitPin(event) {
+      if (event) event.preventDefault();
+      var input = document.getElementById('pin-input');
+      var pin = input.value.trim();
+      if (!pin) {
+        document.getElementById('pin-error').innerText = "PIN 번호를 입력해주세요.";
+        input.focus();
+        return;
+      }
+      setPinBusy(true);
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setPinBusy(false);
+          if (res && res.success && res.token) {
+            setPinToken(res.token);
+            input.value = "";
+            hidePinGate();
+            startAppAfterPin();
+          } else {
+            setPinToken("");
+            document.getElementById('pin-error').innerText = (res && res.message) || "PIN 확인에 실패했습니다.";
+            input.select();
+          }
+        })
+        .withFailureHandler(function() {
+          setPinBusy(false);
+          document.getElementById('pin-error').innerText = "서버와 연결할 수 없습니다.";
+        })
+        .verifyPin(pin);
+    }
+
+    function startAppAfterPin() {
+        document.getElementById('loading').style.display = 'flex';
+        renderMiniCalendar();
+        updateLunch(selectedDate);
+        
+        google.script.run.withSuccessHandler(res => {
+            if (res && res.error) { handleServerError(res.error); return; }
+            initApp(res);
+            google.script.run.withSuccessHandler(data => {
+                if (data && data.error) { handleServerError(data.error); return; }
+                var msg = data.noticeStudent || data.notice;
+                if(!msg || msg === "undefined") msg = "환영합니다! 👋";
+                document.getElementById('notice-text').innerText = msg;
+            }).getStaticData(false, getPinToken());
+        }).getTimetableData(null, getPinToken());
+        
+        setInterval(updateCurrentPeriod, 30000);
+    }
+
+    function checkPinThenStart() {
+      var token = getPinToken();
+      if (!token) {
+        showPinGate();
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.success) {
+            hidePinGate();
+            startAppAfterPin();
+          } else {
+            setPinToken("");
+            showPinGate("PIN 번호를 다시 입력해주세요.");
+          }
+        })
+        .withFailureHandler(function() {
+          setPinToken("");
+          showPinGate("PIN 확인 중 오류가 발생했습니다.");
+        })
+        .verifyPinSession(token);
+    }
+
+    window.onload = function() {
+        checkPinThenStart();
+    };
+
+    function renderMiniCalendar() {
+        var title = document.getElementById('cal-month-title');
+        var displayDate = new Date(currentWeekStart);
+        displayDate.setDate(displayDate.getDate() + 3); 
+        title.innerText = displayDate.getFullYear() + ". " + (displayDate.getMonth() + 1);
+
+        var container = document.getElementById('cal-days-row');
+        container.innerHTML = '';
+
+        var tempDate = new Date(currentWeekStart);
+        var today = new Date(); today.setHours(0,0,0,0);
+
+        for(var i=0; i<7; i++) {
+            var el = document.createElement('div');
+            el.className = 'day-cell';
+            el.innerText = tempDate.getDate();
+            
+            if(tempDate.getTime() === today.getTime()) el.classList.add('today');
+            if(tempDate.getTime() === selectedDate.getTime()) el.classList.add('selected');
+
+            if(i === 0) el.style.color = '#ff8787';
+            if(i === 6) el.style.color = '#74c0fc';
+            if(tempDate.getTime() === selectedDate.getTime()) el.style.color = 'white'; 
+
+            let clickDate = new Date(tempDate);
+            el.onclick = function() { onDateClick(clickDate); };
+
+            container.appendChild(el);
+            tempDate.setDate(tempDate.getDate() + 1);
+        }
+    }
+
+    function changeWeek(offset) {
+        currentWeekStart.setDate(currentWeekStart.getDate() + offset);
+        renderMiniCalendar();
+        var newMonday = new Date(currentWeekStart);
+        newMonday.setDate(newMonday.getDate() + 1); 
+        onDateClick(newMonday);
+    }
+
+    function onDateClick(date) {
+        selectedDate = new Date(date);
+        renderMiniCalendar(); 
+        updateLunch(date);    
+        var cVal = document.getElementById('class-select').value;
+        var tVal = document.getElementById('teacher-select').value;
+        if(cVal) renderTable(cVal, 'class');
+        else if(tVal) renderTable(tVal, 'teacher');
+    }
+
+    function getLunchSeq(date) {
+        var tDate = new Date(date);
+        var anchor = new Date(2025, 11, 29); // 2025.12.29 (월) 기준
+        
+        var tDay = tDate.getDay(); 
+        var tMon = new Date(tDate);
+        tMon.setDate(tDate.getDate() - (tDay === 0 ? 6 : tDay - 1));
+        tMon.setHours(0,0,0,0);
+        anchor.setHours(0,0,0,0);
+        
+        var oneDay = 24 * 60 * 60 * 1000;
+        var weeks = Math.round((tMon - anchor) / (7 * oneDay));
+        
+        var seqIdx = weeks % 3;
+        if (seqIdx < 0) seqIdx += 3;
+        
+        if (seqIdx === 0) return "3학년 ➔ 2학년 ➔ 1학년";
+        else if (seqIdx === 1) return "2학년 ➔ 1학년 ➔ 3학년";
+        else return "1학년 ➔ 3학년 ➔ 2학년";
+    }
+
+    function updateLunch(date) {
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        var dateStr = y + m + d;
+        
+        var dateDisplay = `${m}.${d} (${['일','월','화','수','목','금','토'][date.getDay()]})`;
+        document.getElementById('lunch-date-display').innerText = dateDisplay;
+
+        var seqText = getLunchSeq(date);
+        document.getElementById('seq-text').innerText = seqText;
+
+        var menuDiv = document.getElementById('lunch-menu');
+        menuDiv.innerHTML = '<span style="color:#adb5bd;">메뉴 불러오는 중...</span>';
+
+        google.script.run.withSuccessHandler(res => {
+            if (res && res.error) { handleServerError(res.error); return; }
+            if (res.success && res.menu) { 
+                menuDiv.innerHTML = decorateLunchMenu(res.menu.toString().replace(/<br\/>/g, "\n").replace(/\([0-9\.]+\)/g, "").replace(/\*/g, "")); 
+            } else { 
+                menuDiv.innerText = res.menu; 
+            }
+        }).getLunchData(dateStr, getPinToken());
+    }
+
+    function decorateLunchMenu(menuText) {
+        if (!menuText) return "";
+        let lines = menuText.split(/\n|<br>/);
+        let decoratedLines = lines.map(line => {
+            let txt = line.trim();
+            if (txt.length === 0) return "";
+            let emoji = "🍴";
+            if (txt.match(/밥|라이스|죽|덮밥|비빔밥/)) emoji = "🍚";
+            else if (txt.match(/국|탕|찌개|스프/)) emoji = "🍲";
+            else if (txt.match(/면|국수|우동|라면|파스타/)) emoji = "🍜";
+            else if (txt.match(/고기|돈까스|치킨|닭|불고기/)) emoji = "🍖";
+            else if (txt.match(/김치|깍두기/)) emoji = "🌶️";
+            else if (txt.match(/주스|우유|요구르트/)) emoji = "🧃";
+            else if (txt.match(/사과|배|귤|포도/)) emoji = "🍎";
+            
+            return `<div>${escapeHtml(txt)} <span style="font-size:1.1em; margin-left:2px;">${emoji}</span></div>`;
+        });
+        return decoratedLines.join("");
+    }
+
+    function initApp(res) {
+        document.getElementById('loading').style.display = 'none';
+        if(res.error) { alert(res.error); return; }
+        db = res;
+
+        var wSel = document.getElementById('week-select'); wSel.innerHTML = ""; 
+        res.sheetList.forEach(s => {
+            var opt = document.createElement('option'); opt.value = s; opt.text = s;
+            if(s === res.currentSheetName) opt.selected = true;
+            wSel.appendChild(opt);
+        });
+
+        var cSel = document.getElementById('class-select');
+        var tSel = document.getElementById('teacher-select');
+        var savedClass = cSel.value || localStorage.getItem('lite_val');
+        var savedTeacher = tSel.value || localStorage.getItem('lite_val');
+
+        if(cSel.options.length === 1) {
+            res.classList.forEach(c => { var o = document.createElement('option'); o.value = c; o.text = c; cSel.appendChild(o); });
+            res.teacherList.forEach(t => { var o = document.createElement('option'); o.value = t; o.text = t; tSel.appendChild(o); });
+        }
+
+        var savedType = localStorage.getItem('lite_type');
+        if(savedType === 'class' && res.classList.includes(savedClass)) {
+            cSel.value = savedClass; onClassSelect(savedClass);
+        } else if(savedType === 'teacher' && res.teacherList.includes(savedTeacher)) {
+            tSel.value = savedTeacher; onTeacherSelect(savedTeacher);
+        }
+        
+        updateCurrentPeriod();
+    }
+
+    function onClassSelect(val) {
+        if(!val) return;
+        document.getElementById('teacher-select').value = "";
+        renderTable(val, 'class');
+    }
+    function onTeacherSelect(val) {
+        if(!val) return;
+        document.getElementById('class-select').value = "";
+        renderTable(val, 'teacher');
+    }
+
+    function getSpecialDayInfo(dayIndex) { 
+        if(!db || !db.currentSheetName) return null;
+        var parts = db.currentSheetName.match(/(\d+)\.(\d+)/);
+        if(!parts) return null;
+        var m = parseInt(parts[1]); var d = parseInt(parts[2]);
+        var y = new Date().getFullYear();
+        if (new Date().getMonth() === 11 && m === 1) y++;
+        var date = new Date(y, m - 1, d);
+        date.setDate(date.getDate() + dayIndex); 
+        
+        var checkM = date.getMonth() + 1;
+        var checkD = date.getDate();
+        
+        if (checkM === 1 && checkD === 9) return { type: 'graduation', text: '종업식 및<br>졸업식', emoji: '🎓', sub: '💐' };
+        if (checkM === 12 && checkD === 31) return { type: 'festival', text: '웅동중<br>계광제', emoji: '🎉', sub: '🎤' };
+        if (checkM === 1 && checkD === 1) return { type: 'newyear', text: 'Happy<br>New Year', emoji: '🌅', sub: '🐉' };
+        if (checkM === 12 && checkD === 25) return { type: 'xmas', text: 'Merry<br>Christmas', emoji: '🎄', sub: '🎅' };
+        
+        return null;
+    }
+
+    function renderTable(target, type) {
+        if(!db) return;
+        var data = db.teachers[target] || db.classes[target];
+        var area = document.getElementById('table-area');
+        if(!data) { area.innerHTML = '<div style="text-align:center;padding:20px;color:#b2bec3;">정보가 없어요</div>'; return; }
+
+        var html = '<table><thead><tr><th style="width:26px;"></th>';
+        days.forEach((d, i) => {
+            var isSelectedDay = (selectedDate.getDay() === (i + 1));
+            var style = isSelectedDay ? 'background:#be4bdb !important;' : '';
+            html += `<th style="${style}">${d}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        var specialEvents = [0,1,2,3,4].map(i => getSpecialDayInfo(i));
+
+        for(var p=1; p<=7; p++) {
+            var isCur = (p === currP);
+            html += `<tr><td class="period-col ${isCur ? 'is-now' : ''}">${p}</td>`;
+            
+            days.forEach((d, i) => {
+                if (specialEvents[i]) {
+                    if (p === 1) {
+                          var evt = specialEvents[i];
+                          var color = evt.type === 'festival' || evt.type === 'graduation' ? '#6c5ce7' : (evt.type === 'xmas' ? '#ff6b6b' : '#ff922b');
+                          html += `<td rowspan="7" class="special-cell">
+                                    <div class="special-content">
+                                        <div class="special-emoji">${evt.emoji}</div>
+                                        <div class="special-text" style="color:${color}">${evt.text}</div>
+                                        <div class="special-sub">${evt.sub}</div>
+                                    </div>
+                                  </td>`;
+                    }
+                    return; 
+                }
+
+                var isSelectedDay = (selectedDate.getDay() === (i + 1));
+                var cellClass = isSelectedDay ? 'is-highlighted-day' : '';
+                
+                var item = (data[d] || []).find(it => it.period === p);
+                var content = "";
+                if(item) {
+                    content += `<div class="subject">${item.subject}</div>`;
+                    var subInfo = (type === 'class') ? (item.teachers[0] || '') : item.className;
+                    if (type === 'class' && item.subject === '정보') subInfo = '정해인';
+                    if(subInfo) content += `<div class="teacher-name">${subInfo}</div>`;
+                }
+                html += `<td class="${cellClass}">${content}</td>`;
+            });
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        area.innerHTML = html;
+    }
+
+    function updateCurrentPeriod() {
+        if (!db) return;
+        var now = new Date();
+        var hour = now.getHours();
+        var min = now.getMinutes();
+        if (hour >= 18 || hour < 7) { currP = -1; return; }
+        var hhmm = hour.toString().padStart(2,'0') + ":" + min.toString().padStart(2,'0');
+        var found = db.periodTimes.find(p => hhmm >= p.start && hhmm <= p.end);
+        var nextP = found ? found.p : -1;
+        if(currP !== nextP) {
+            currP = nextP;
+            var cVal = document.getElementById('class-select').value;
+            var tVal = document.getElementById('teacher-select').value;
+            if(cVal) renderTable(cVal, 'class');
+            else if(tVal) renderTable(tVal, 'teacher');
+        }
+    }
+
+    function saveImage() {
+        var target = document.getElementById("capture-area");
+        if(!target || target.innerText.includes("선택")) { alert("시간표를 먼저 띄워주세요!"); return; }
+        document.getElementById('loading').style.display = 'flex';
+        html2canvas(target, { scale: 2, backgroundColor: "#fff9db", borderRadius: 18 }).then(canvas => {
+            var link = document.createElement('a'); link.href = canvas.toDataURL("image/png"); link.download = '웅동중_시간표.png'; link.click();
+            document.getElementById('loading').style.display = 'none';
+        });
+    }
+  </script>
+</body>
+</html>
